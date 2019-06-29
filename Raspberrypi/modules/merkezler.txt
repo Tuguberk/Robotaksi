@@ -1,0 +1,13 @@
+hedef hastane:1500271796B3
+hedef cami:19003B53ED9C
+#hedef havaalanı:1900605C7E5B
+hedef avm:1A0022477D02
+hedef belediye:19005B556572
+hedef okul:19007E775646
+#hedef hükümet konağı:1A00247AE4A0
+hedef güvenlik merkezi:19007ED8FE41
+hedef itfaiye:1A0022FA5C9E
+#hedef eczane:2
+#hedef otobüs terminali:2
+#hedef kırtasiye:2
+#hedef süpermarket:2
