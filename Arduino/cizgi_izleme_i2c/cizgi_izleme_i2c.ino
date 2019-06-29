@@ -5,18 +5,9 @@
   SCL -> A5
 */
 
-
 #include <Wire.h>
 
 #define SLAVE_ADDRESS 0x04
-
-//Servo Motor Ayarları
-#define kapiA 10
-int kapiMax = 40;
-int kapiMin = 160;
-#define yururaksamA 11
-int yururaksamMax = 170;
-int yururaksamMin = 40;
 
 //Dc Motor Bağlantıları
 #define pwmPinSol  9
