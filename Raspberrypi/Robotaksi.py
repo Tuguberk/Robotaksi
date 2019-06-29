@@ -46,6 +46,10 @@ Açizgi = i2c.i2c(0x04)
 #Servo ayarı
 servo_kapı = servo.servo(17)
 servo_basamak = servo.servo(27)
+kapı_ac = 40
+kapı_kapat = 160
+basamak_ac = 170
+basamak_kapat = 40
 
 #Oled Ekran ayarları
 RST = None
@@ -68,13 +72,16 @@ x = 0
 font = ImageFont.load_default()
 draw.rectangle((0,0,width,height), outline=0, fill=0)
 
+
+
+
 #########################################
 def yolcu():
-    servo_kapı.write(40)
-    servo_basamak.write(170)
+    servo_kapı.write(kapı_ac)
+    servo_basamak.write(basamak_ac)
     time.sleep(4)
-    servo_kapı.write(160)
-    servo_basamak.write(40)
+    servo_kapı.write(kapı_kapat)
+    servo_basamak.write(basamak_kapat)
 
 #çeviri
 def cevir(metin):
@@ -221,6 +228,8 @@ def callback(recognizer, audio):
 
 ############################
 OledYaz("Hoş Geldiniz")
+servo_kapı.write(kapı_kapat)
+servo_basamak.write(basamak_kapat)
 r = sr.Recognizer()
 m = sr.Microphone()
 with m as source:
