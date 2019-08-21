@@ -5,6 +5,8 @@ import time
 
 from threading import Thread
 
+from subprocess import Popen, PIPE
+
 import os
 
 import pyaudio
@@ -22,9 +24,16 @@ from PIL import ImageFont
 
 import serial
 
+import requests
+
+import json
+
+from gtts import gTTS
+
 #################
-from modules import servo
+#from modules import servo ##Servo sürücü bekleniyor
 from modules import i2c
+from modules import ceyda
 
 ###########################################################################
 PortRF = serial.Serial("/dev/ttyS0",9600) #Seri iletişimi başlattık
@@ -44,12 +53,10 @@ clkLastState = GPIO.input(clk)
 #i2c ayarı
 Açizgi = i2c.i2c(0x04)
 #Servo ayarı
-servo_kapı = servo.servo(17)
-servo_basamak = servo.servo(27)
-kapı_ac = 40
-kapı_kapat = 160
-basamak_ac = 170
-basamak_kapat = 40
+#############
+
+#Asistan Ayarı
+asistan = ceyda.CEYDA("MacigMirror","55f0f5112ecb771ca78a8778b9c080ba")
 
 #Oled Ekran ayarları
 RST = None
@@ -72,16 +79,12 @@ x = 0
 font = ImageFont.load_default()
 draw.rectangle((0,0,width,height), outline=0, fill=0)
 
-
-
-
 #########################################
-def yolcu():
-    servo_kapı.write(kapı_ac)
-    servo_basamak.write(basamak_ac)
-    time.sleep(4)
-    servo_kapı.write(kapı_kapat)
-    servo_basamak.write(basamak_kapat)
+
+def konus(metin):
+    tts = gTTS(text=metin, lang='tr')
+    tts.save("ses.mp3")
+    process = Popen(['mpg123','ses.mp3'], stdout=PIPE, stderr=PIPE) #linuxa göre ses çalma komutu
 
 #çeviri
 def cevir(metin):
@@ -107,7 +110,6 @@ def cevir(metin):
     return karakter
 
 def RfidBekle(kart):
-    Yolcu()
     while True:
         kart_degeri= str() ##Kart okuma
         okunan_byte = PortRF.read()
@@ -121,7 +123,7 @@ def RfidBekle(kart):
                 Açizgi.VeriGonder("0")
                 OledYaz("Hedefe Varıldı")
                 print("Hedefe Varıldı")
-                Yolcu()
+                konus("Hedefe varıldı.")
                 break
         
 
@@ -215,12 +217,16 @@ def callback(recognizer, audio):
         OledYaz(söylendi)
         söylendi_l = söylendi.lower()
         if duraklar_d.get(söylendi_l) != None:
+            konus("Hedefe Gidiliyor. {}".format(söylendi))
             Açizgi.VeriGonder("0")
             OledYaz("Hedefe Gidiliyor")
+            print("Beklenen kart:",söylendi_l[5:])
+            print("Beklenen numara:",str(duraklar_d[söylendi_l]))
             RfidBekle(str(duraklar_d[söylendi_l]))
         else:
-            print("Benim için birşey ifade etmiyor.")
-        
+            ceyda_cevap = asistan.sor(söylendi))
+            print("Ceyda:",ceyda_cevap)
+            konus(ceyda_cevap)
     except sr.UnknownValueError:
         söylendi = "Anlayamadım"
     except sr.RequestError as e:
@@ -228,8 +234,6 @@ def callback(recognizer, audio):
 
 ############################
 OledYaz("Hoş Geldiniz")
-servo_kapı.write(kapı_kapat)
-servo_basamak.write(basamak_kapat)
 r = sr.Recognizer()
 m = sr.Microphone()
 with m as source:
@@ -290,6 +294,9 @@ def main(): #Ekran için komutlar
 ##########################
 rotary = Thread(target=RotarySwitch)
 program = Thread(target=main)
+
+rotary.deamon = True
+program.deamon = True
 
 rotary.start()
 program.start()
