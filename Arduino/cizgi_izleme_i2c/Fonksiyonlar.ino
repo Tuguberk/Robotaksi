@@ -30,18 +30,29 @@ void motorKontrol(int hizSol, int hizSag)
   }
 }
 
+void Yolcu()
+{
+
+  pwm.setPWM(0, 0, angleToPulse(kapiAcik));
+  pwm.setPWM(1, 0, angleToPulse(yururaksamAcik));
+  delay(6000);
+  pwm.setPWM(0, 0, angleToPulse(kapiKapali));
+  pwm.setPWM(1, 0, angleToPulse(yururaksamKapali));
+  delay(2000);
+}
+
 void CizgiIzle()
 {
-  if (analogRead(cizgi1)<refDeg) c1 = false; else c1 = true;
-  if (analogRead(cizgi2)<refDeg) c2 = false; else c2 = true;
-  if (analogRead(cizgi3)<refDeg) c3 = false; else c3 = true;
+  if (analogRead(cizgi1) < refDeg) c1 = false; else c1 = true;
+  if (analogRead(cizgi2) < refDeg) c2 = false; else c2 = true;
+  if (analogRead(cizgi3) < refDeg) c3 = false; else c3 = true;
   Serial.print(c1);
   Serial.print('\t');
   Serial.print(c2);
   Serial.print('\t');
   Serial.print(c3);
   Serial.println();
-  
+
   if (c1 != cizgirengi and c2 == cizgirengi and c3 != cizgirengi)
   {
     Serial.println("Duz");
@@ -51,14 +62,26 @@ void CizgiIzle()
   if (c1 != cizgirengi and c2 != cizgirengi and c3 == cizgirengi)
   {
     Serial.println("Sagdancikti");
-    motorKontrol(-40, 120);
+    motorKontrol(-50, 130);
     sonkonum = 0;
   }
   if (c1 == cizgirengi and c2 != cizgirengi and c3 != cizgirengi)
   {
     Serial.println("Soldancikti");
-    motorKontrol(120, -40);
+    motorKontrol(130, -50);
     sonkonum = 2;
+  }
+  if (c1 == cizgirengi and c2 == cizgirengi and c3 != cizgirengi)
+  {
+    Serial.println("Soldancikti");
+    motorKontrol(130, -50);
+    sonkonum = 2;
+  }
+  if (c1 != cizgirengi and c2 == cizgirengi and c3 == cizgirengi)
+  {
+    Serial.println("Sagdancikti");
+    motorKontrol(-50, 130);
+    sonkonum = 0;
   }/*
   else if (c1 != cizgirengi and c2 != cizgirengi and c3 != cizgirengi)
   {
@@ -72,4 +95,8 @@ void CizgiIzle()
         break;
     }
   }*/
+}
+
+int angleToPulse(int ang) {
+  return map(ang, 0, 180, SERVOMIN, SERVOMAX);
 }
