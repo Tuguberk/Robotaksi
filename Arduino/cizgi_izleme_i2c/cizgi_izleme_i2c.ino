@@ -23,7 +23,7 @@ int refDeg = 800;
 #define cizgi2 A1
 #define cizgi3 A2
 bool cizgirengi = false; //False beyaz çizgi, true siyah çizgi
-bool devamEt = true; // Veri beklemek için false, değilse true
+bool devamEt = false; // Veri beklemek için false, değilse true
 bool cizgiIzle = false; //Direk çizgi izlemey başlamak için true, değilse false
 int sonkonum = 1;
 bool c1;
