@@ -11,8 +11,6 @@ import os
 
 import pyaudio
 
-from Queue import Queue
-
 import speech_recognition as sr
 
 import smbus2
@@ -36,10 +34,11 @@ from gtts import gTTS
 #from modules import servo ##Servo sürücü bekleniyor
 from modules import i2c
 from modules import ceyda
-
+from modules import mqtt
 ###########################################################################
 PortRF = serial.Serial("/dev/ttyS0",9600) #Seri iletişimi başlattık
 sira = Queue()
+print("Deneme")
 
 #Gpio ayarları
 GPIO.setmode(GPIO.BCM)
@@ -227,7 +226,7 @@ def callback(recognizer, audio):
             print("Beklenen numara:",str(duraklar_d[söylendi_l]))
             RfidBekle(str(duraklar_d[söylendi_l]))
         else:
-            ceyda_cevap = asistan.sor(söylendi))
+            ceyda_cevap = asistan.sor(söylendi)
             print("Ceyda:",ceyda_cevap)
             konus(ceyda_cevap)
     except sr.UnknownValueError:
@@ -297,13 +296,15 @@ def main(): #Ekran için komutlar
 ##########################
 rotary = Thread(target=RotarySwitch)
 program = Thread(target=main)
+sunucu = Thread(target=mqtt.baslat)
 
 rotary.deamon = True
 program.deamon = True
+sunucu.deamon = True
 
 rotary.start()
 program.start()
-    
+sunucu.start()
     
 print("durdu")
 
