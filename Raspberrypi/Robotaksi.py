@@ -11,6 +11,8 @@ import os
 
 import pyaudio
 
+from Queue import Queue
+
 import speech_recognition as sr
 
 import smbus2
@@ -37,6 +39,7 @@ from modules import ceyda
 
 ###########################################################################
 PortRF = serial.Serial("/dev/ttyS0",9600) #Seri iletişimi başlattık
+sira = Queue()
 
 #Gpio ayarları
 GPIO.setmode(GPIO.BCM)
