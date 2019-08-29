@@ -18,6 +18,8 @@ import smbus2
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_SSD1306
 
+import queue 
+
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -37,8 +39,9 @@ from modules import ceyda
 from modules import mqtt
 ###########################################################################
 PortRF = serial.Serial("/dev/ttyS0",9600) #Seri iletişimi başlattık
-sira = Queue()
 print("Deneme")
+
+sıra = queue.Queue(maxsize=20) 
 
 #Gpio ayarları
 GPIO.setmode(GPIO.BCM)
@@ -88,6 +91,7 @@ def konus(metin):
     tts.save("ses.mp3")
     process = Popen(['mpg123','ses.mp3'], stdout=PIPE, stderr=PIPE) #linuxa göre ses çalma komutu
 
+
 #çeviri
 def cevir(metin):
     liste = {"ı": "i",
@@ -111,22 +115,28 @@ def cevir(metin):
     #print(karakter)
     return karakter
 
-def RfidBekle(kart):
+def RfidBekle():            
     while True:
-        kart_degeri= str() ##Kart okuma
-        okunan_byte = PortRF.read()
-        #print(read_byte)
-        if okunan_byte == b"\x02":
-            for i in range(12):
-                okunan_byte=PortRF.read()
-                kart_degeri = kart_degeri + okunan_byte.decode("utf-8")
-            print(kart_degeri)
-            if (kart_degeri == kart):
-                Açizgi.VeriGonder("0")
-                OledYaz("Hedefe Varıldı")
-                print("Hedefe Varıldı")
-                konus("Hedefe varıldı.")
-                break
+        if sıra.empty() == False:
+            Açizgi.VeriGonder("0")
+            beklenen_numara = sıra.get()
+            print("Sıra çalıştı")
+            while True:
+                kart_degeri= str() ##Kart okuma
+                okunan_byte = PortRF.read()
+                if okunan_byte == b"\x02":
+                    for i in range(12):
+                        okunan_byte=PortRF.read()
+                        kart_degeri = kart_degeri + okunan_byte.decode("utf-8")
+                    print(kart_degeri)
+                    if (kart_degeri == beklenen_numara):
+                        Açizgi.VeriGonder("0")
+                        OledYaz("Hedefe Varıldı")
+                        print("Hedefe Varıldı")
+                        konus("Hedefe varıldı.")
+                        break
+            time.sleep(7)
+
         
 
 def OledYaz(metin):
@@ -220,11 +230,10 @@ def callback(recognizer, audio):
         söylendi_l = söylendi.lower()
         if duraklar_d.get(söylendi_l) != None:
             konus("Hedefe Gidiliyor. {}".format(söylendi))
-            Açizgi.VeriGonder("0")
-            OledYaz("Hedefe Gidiliyor")
+            OledYaz("Hedef sıraya alındı.")
             print("Beklenen kart:",söylendi_l[5:])
             print("Beklenen numara:",str(duraklar_d[söylendi_l]))
-            RfidBekle(str(duraklar_d[söylendi_l]))
+            sıra.put(str(duraklar_d[söylendi_l]))
         else:
             ceyda_cevap = asistan.sor(söylendi)
             print("Ceyda:",ceyda_cevap)
@@ -275,10 +284,10 @@ def main(): #Ekran için komutlar
             if onaykontrol == True:
                 print("onaykontrol true")
                 Açizgi.VeriGonder("0")
-                OledYaz("Hedefe Gidiliyor")
+                OledYaz("Hedef sıraya alındı")
                 print("İstenenkart :"+str(duraklar_e[konum]))
                 print("Beklenen numara :"+str(duraklar_d[duraklar_e[konum]]))
-                RfidBekle(str(duraklar_d[duraklar_e[konum]]))
+                sıra.put(str(duraklar_d[duraklar_e[konum]]))
                 k_konum = int((k_derece - (k_derece%10))/10)
                 hareket = False
                 onayla = list()
@@ -296,15 +305,14 @@ def main(): #Ekran için komutlar
 ##########################
 rotary = Thread(target=RotarySwitch)
 program = Thread(target=main)
-sunucu = Thread(target=mqtt.baslat)
-
+yol = Thread(target=RfidBekle)
+                  
 rotary.deamon = True
 program.deamon = True
-sunucu.deamon = True
+yol.deamon = True
 
 rotary.start()
 program.start()
-sunucu.start()
+yol.start()
     
 print("durdu")
-
