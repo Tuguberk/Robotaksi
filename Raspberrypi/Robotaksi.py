@@ -13,6 +13,12 @@ import pyaudio
 
 import speech_recognition as sr
 
+import snowboydecoder
+
+import sys
+
+import signal
+
 import smbus2
 
 import Adafruit_GPIO.SPI as SPI
@@ -40,6 +46,8 @@ from modules import mqtt
 ###########################################################################
 PortRF = serial.Serial("/dev/ttyS0",9600) #Seri iletişimi başlattık
 print("Deneme")
+
+interrupted = False
 
 sıra = queue.Queue(maxsize=20) 
 
@@ -218,12 +226,12 @@ print("Duraklar_e {} elemenalı".format(len(duraklar_e)))
 print(duraklar_e)
 
 
-def callback(recognizer, audio):
+def audioRecorderCallback(fname):
+    print("Ses Yazıya Çevriliyor.")
+    r = sr.Recognizer()
+    with sr.AudioFile(fname) as source:
+        audio = r.record(source)
     try:
-        # for testing purposes, we're just using the default API key
-        # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
-        # instead of `r.recognize_google(audio)`
-        print("çalıştı")
         söylendi = recognizer.recognize_google(audio,language = "tr-TR")
         print(söylendi)
         OledYaz(söylendi)
@@ -242,14 +250,39 @@ def callback(recognizer, audio):
         söylendi = "Anlayamadım"
     except sr.RequestError as e:
         söylendi = "Veri alınamadı; {0}".format(e)
+    os.remove(fname)
 
 ############################
 OledYaz("Hoş Geldiniz")
-r = sr.Recognizer()
-m = sr.Microphone()
-with m as source:
-    r.adjust_for_ambient_noise(source)  # dinlemeden önce arka plan seslerini almamak için kalibre ediyoruz
-stop_listening = r.listen_in_background(m, callback)
+
+def detectedCallback():
+  print('Ses kaydediliyor....', end='', flush=True)
+
+def signal_handler(signal, frame):
+    global interrupted
+    interrupted = True
+
+def interrupt_callback():
+    global interrupted
+    return interrupted
+
+if len(sys.argv) == 1:
+    print("Hata: Bir Model Adına ihityaç var. Robotaksi.pdml")
+    sys.exit(-1)
+
+model = sys.argv[1]
+
+# capture SIGINT signal, e.g., Ctrl+C
+signal.signal(signal.SIGINT, signal_handler)
+
+detector = snowboydecoder.HotwordDetector(model, sensitivity=0.38)
+print('Dinleniyor.')
+
+# main loop
+detector.start(detected_callback=detectedCallback,
+               audio_recorder_callback=audioRecorderCallback,
+               interrupt_check=interrupt_callback,
+               sleep_time=0.01)
 
 time.sleep(2)
 ##########################
@@ -314,5 +347,6 @@ yol.deamon = True
 rotary.start()
 program.start()
 yol.start()
+detector.terminate()
     
 print("durdu")
